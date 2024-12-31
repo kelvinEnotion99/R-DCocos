@@ -1,0 +1,52 @@
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: general-vs:vert
+      frag: fresnel-fs:frag
+      properties: &props
+        fresnelPower:   { value: 1.0, target: power.a, editor: { slide: true, range: [0, 10], step: 0.1 } }
+  - name: transparent
+    passes:
+    - vert: general-vs:vert
+      frag: fresnel-fs:frag
+      depthStencilState: &d1
+        depthTest: true
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      properties: *props
+}%
+
+CCProgram fresnel-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/output>
+
+  in vec2 v_uv;
+  in vec3 v_normal;
+  in vec3 v_position;
+
+  uniform Constant {
+    vec4 power;
+  }; 
+
+  float Fresnel(float power)
+  {
+    vec3 normal = v_normal; 
+    vec3 viewDirection = cc_cameraPos.xyz - v_position;
+    return pow((1.0 - (dot(normalize(normal), normalize(viewDirection)))), power);
+  }
+
+  vec4 frag(){    
+
+    vec4 color = vec4(1);
+    color.rgb *= Fresnel(power.a);
+    color.a *= Fresnel(power.a);
+    return color;  
+  }
+}%

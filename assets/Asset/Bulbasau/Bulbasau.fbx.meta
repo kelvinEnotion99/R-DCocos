@@ -1,0 +1,60 @@
+{
+  "ver": "2.3.4",
+  "importer": "fbx",
+  "imported": true,
+  "uuid": "87d44cfe-79dd-4ed0-a876-0b17b5a43e96",
+  "files": [],
+  "subMetas": {
+    "1605c": {
+      "importer": "gltf-mesh",
+      "uuid": "87d44cfe-79dd-4ed0-a876-0b17b5a43e96@1605c",
+      "displayName": "",
+      "id": "1605c",
+      "name": "uploads_files_3606843_Bulbasaur.mesh",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.1.0",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e9108": {
+      "importer": "gltf-scene",
+      "uuid": "87d44cfe-79dd-4ed0-a876-0b17b5a43e96@e9108",
+      "displayName": "",
+      "id": "e9108",
+      "name": "Bulbasau.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "fbx": {
+      "smartMaterialEnabled": true
+    },
+    "redirect": "87d44cfe-79dd-4ed0-a876-0b17b5a43e96@e9108",
+    "assetFinder": {
+      "meshes": [
+        "87d44cfe-79dd-4ed0-a876-0b17b5a43e96@1605c"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [],
+      "scenes": [
+        "87d44cfe-79dd-4ed0-a876-0b17b5a43e96@e9108"
+      ]
+    }
+  }
+}

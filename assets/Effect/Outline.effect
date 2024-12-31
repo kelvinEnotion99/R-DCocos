@@ -1,0 +1,50 @@
+
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: Outline-VS:vert
+      frag: Outline-FS:frag
+      rasterizerState:
+        cullMode: front
+      depthStencilState:
+        depthFunc: less_equal
+        depthTest: true
+        depthWrite: true
+      properties:
+        lineWidth:     { value: 10, target: outlineParams.x }
+        depthBias:     { value: 0,  target: outlineParams.y }
+        baseColor:     { editor: { type: color } }
+        baseColorMap:  { value: grey }
+    - vert: general-vs:vert
+      frag: colorBase-fs:frag
+      properties: &props
+        mainTexture:    { value: white } 
+        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }   
+    
+}%
+
+CCProgram colorBase-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/output>
+
+
+  in vec2 v_uv;
+
+  uniform sampler2D mainTexture;
+
+
+  uniform Constant {
+    vec4 mainColor;
+  }; 
+
+
+
+  vec4 frag(){    
+
+    // color object
+    vec4 col = mainColor * texture(mainTexture, v_uv); 
+
+    return col;  
+  }
+}%

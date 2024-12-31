@@ -1,0 +1,50 @@
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: general-vs:vert
+      frag: dot-fs:frag
+      properties: &props
+        lightDirection: { value: [1.0, 1.0, 1.0], target: light.xyz, editor: { type: vec3, } }
+  - name: transparent
+    passes:
+    - vert: general-vs:vert
+      frag: dot-fs:frag
+      depthStencilState: &d1
+        depthTest: true
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      properties: *props
+}%
+
+CCProgram dot-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/output>
+
+  in vec2 v_uv;
+  in vec3 v_normal;
+  in vec3 v_position;
+
+  uniform Constant {
+    vec4 light;
+  }; 
+
+  float DotProduct(vec3 light)
+  {
+    vec3 normal = v_normal; 
+    return dot(normal, light);
+  }
+
+  vec4 frag(){    
+    vec4 color = vec4(1);
+    color.rgb *= DotProduct(light.xyz);
+    color.a *= DotProduct(light.xyz);
+    return color;  
+  }
+}%

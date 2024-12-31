@@ -1,0 +1,75 @@
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: general-vs:vert
+      frag: rimlight-fs:frag
+      properties: &props
+        mainTexture:    { value: white } 
+        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }    
+      
+        borderColorBase:  { value: [1.0, 1.0, 1.0], target: borderColor.rgb, editor: {  type: color } }
+        borderIntensity:   { value: 1.0, target: borderColor.a, editor: {slide: true, range: [0, 10], step: 0.1}}  
+        borderRadian: { value: [0.4, 0.8], target: borderR.rg, editor: { type: vec2 } }
+
+        shadowColorBase:  { value: [0.0, 0.0, 0.0], target: shadowColor.rgb, editor: {  type: color } }
+        shadowIntensity:   { value: 1.0, target: shadowColor.a, editor: {slide: true, range: [0, 10], step: 0.1}}
+        shadowRadian: { value: [0.4, 0.8], target: shadowR.rg, editor: { type: vec2 } }
+
+        lightColorBase: { value: [1.0, 1.0, 1.0], target: light.xyz, editor: { type: vec3, } }
+
+}%
+
+
+CCProgram rimlight-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/output>
+
+
+  in vec2 v_uv;
+  in vec3 v_normal;
+  in vec3 v_position;
+
+  uniform sampler2D mainTexture;
+
+
+  uniform Constant {
+    vec4 mainColor;
+    vec4 borderColor;
+    vec4 borderR;
+    vec4 shadowColor;
+    vec4 shadowR;
+    vec4 light;
+    
+  }; 
+
+
+
+  vec4 frag(){    
+    
+    vec3 normal = normalize(v_normal); 
+    vec3 viewDirection = cc_cameraPos.xyz - v_position;
+    vec3 normalizedViewDirection = normalize(viewDirection);  
+
+    float rimPower = 1.0 - max(dot(normal, normalizedViewDirection), 0.0); //tính hướng của view và object
+    float f_shadow = max(dot(normal, light.xyz), 0.0); // tính hướng của object và đối tượng light tự chọn
+
+    // color object
+    vec4 col = mainColor * texture(mainTexture, v_uv); 
+
+    float borderIntensity = borderColor.a; 
+    float shadowIntensity = shadowColor.a;  
+
+    vec3 markBoder = smoothstep(borderR.r, borderR.g, pow(rimPower, borderIntensity) * vec3(1.0,1.0,1.0)); //tạo mark cho boder
+    vec3 markShadow =  1.0 - smoothstep(shadowR.r, shadowR.g, pow(f_shadow, shadowIntensity) * vec3(1.0,1.0,1.0)); //tạo mark cho shadow
+
+    markShadow = mix(markShadow, vec3(0,0,0), markBoder);
+
+    vec3 markBaseColor = (1.0 - (markShadow + markBoder));
+
+    col.rgb = markBaseColor*col.rgb + borderColor.rgb*markBoder + shadowColor.rgb*markShadow; 
+
+    return col;  
+  }
+}%

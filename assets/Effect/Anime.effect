@@ -1,0 +1,131 @@
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: general-vs:vert
+      frag: rimlight-fs:frag
+      properties: &props
+        mainTexture:    { value: white } 
+        mainColor:      { value: [1, 0, 1, 1], editor: { type: color } }    
+      
+        borderColorBase:  { value: [1.0, 1.0, 1.0], target: borderColor.rgb, editor: {  type: color } }
+        borderIntensity:   { value: 4.0, target: borderColor.a, editor: {slide: true, range: [0, 10], step: 0.1}}  
+        borderRadian: { value: [0.5, 0.5], target: borderR.rg, editor: { type: vec2 } }
+
+        shadowColorBase_1:  { value: [1.0, 1.0, 0.0], target: shadowColor1.rgb, editor: {  type: color } }
+        LenghtColor_1:   { value: 0.1, target: shadowColor1.a, editor: {slide: true, range: [0.1, 10], step: 0.01}}
+        AngleColor_1: { value: 0, target: angle.a, editor: {slide: true, range: [0, 180], step: 1}}
+        TilingColor_1: { value: 90, target: tiling.a, editor: {slide: true, range: [0, 1000], step: 1}}
+
+        shadowColorBase_2:  { value: [1.0, 0.0, 0.0], target: shadowColor2.rgb, editor: {  type: color } }
+        LenghtColor_2:   { value: 0.5, target: shadowColor2.a, editor: {slide: true, range: [0.1, 10], step: 0.01}}
+
+        shadowColorBase_3:  { value: [0.0, 1.0, 0.0], target: shadowColor3.rgb, editor: {  type: color } }
+        LenghtColor_3:   { value: 1.0, target: shadowColor3.a, editor: {slide: true, range: [0.1, 10], step: 0.01}}
+
+        shadowColorBase_4:  { value: [0.0, 0.0, 1.0], target: shadowColor4.rgb, editor: {  type: color } }
+        LenghtColor_4:   { value: 2.0, target: shadowColor4.a, editor: {slide: true, range: [0.1, 10], step: 0.01}}
+
+        # shadowIntensity:   { value: 0, target: shadowColor1.a, editor: {slide: true, range: [0, 10], step: 0.1}}
+        shadowRadian: { value: [0.5, 0.5], target: shadowR.rg, editor: { type: vec2 } }
+
+        lightColorBase: { value: [0.0, 1.0, 0.0], target: light.xyz, editor: { type: vec3, } }
+
+}%
+
+
+CCProgram rimlight-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/output>
+
+
+  in vec2 v_uv;
+  in vec3 v_normal;
+  in vec3 v_position;
+
+  uniform sampler2D mainTexture;
+
+
+  uniform Constant {
+    vec4 mainColor;
+    vec4 borderColor;
+    vec4 borderR;
+    vec4 shadowColor1;
+    vec4 shadowColor2;
+    vec4 shadowColor3;
+    vec4 shadowColor4;
+    vec4 shadowR;
+    vec4 light;
+    vec4 angle;
+    vec4 tiling;
+  }; 
+
+
+
+  vec4 frag(){    
+    
+    vec3 normal = normalize(v_normal); 
+    vec3 viewDirection = cc_cameraPos.xyz - v_position;
+    vec3 normalizedViewDirection = normalize(viewDirection);  
+
+    float rimPower = 1.0 - max(dot(normal, normalizedViewDirection), 0.0); //tính hướng của view và object
+    float f_shadow = max(dot(normal, -1.0*light.xyz), 0.0); // tính hướng của object và đối tượng light tự chọn
+
+    float f_shadow_fk = floor((dot(normal, light.xyz)*0.5 + 0.5)*5.0);
+
+    // color object
+    vec4 col = mainColor * texture(mainTexture, v_uv); 
+
+    float borderIntensity = borderColor.a; 
+    // float shadowIntensity = shadowColor1.a;  
+
+    vec3 markBoder = smoothstep(borderR.r, borderR.g, pow(rimPower, borderIntensity) * vec3(1.0,1.0,1.0)); //tạo mark cho boder
+
+
+    
+    vec3 markShadow =  smoothstep(shadowR.r, shadowR.g, pow(f_shadow, shadowColor1.a) * vec3(1.0,1.0,1.0)); //tạo mark cho shadow
+
+    vec3 markShadow1 =  smoothstep(shadowR.r, shadowR.g, pow(f_shadow, shadowColor1.a) * vec3(1.0,1.0,1.0)); //tạo mark cho shadow
+    vec3 markShadow2 =  smoothstep(shadowR.r, shadowR.g, pow(f_shadow, shadowColor2.a) * vec3(1.0,1.0,1.0)); //tạo mark cho shadow
+    vec3 markShadow3 =  smoothstep(shadowR.r, shadowR.g, pow(f_shadow, shadowColor3.a) * vec3(1.0,1.0,1.0)); //tạo mark cho shadow
+    vec3 markShadow4 =  smoothstep(shadowR.r, shadowR.g, pow(f_shadow, shadowColor4.a) * vec3(1.0,1.0,1.0)); //tạo mark cho shadow
+
+   
+    markShadow1 = mix(markShadow1,vec3(0,0,0), markShadow2);
+    markShadow2 = mix(markShadow2,vec3(0,0,0), markShadow3);
+    markShadow3 = mix(markShadow3,vec3(0,0,0), markShadow4);
+
+    markShadow1 = mix(markShadow1, vec3(0,0,0), markBoder);
+    markShadow2 = mix(markShadow2, vec3(0,0,0), markBoder);
+    markShadow3 = mix(markShadow3, vec3(0,0,0), markBoder);
+    markShadow4 = mix(markShadow4, vec3(0,0,0), markBoder);
+
+    //// Map tilling color 1 ////
+    float radians = radians(angle.a);
+    float threshold = 0.5;
+
+    mat2 rotation = mat2(
+          cos(radians), -sin(radians),
+          sin(radians),  cos(radians)
+    );
+
+    vec2 rotatedUV = rotation * (v_uv - 0.5) + 0.5;
+    // Dịch và lặp UV
+    vec2 tiledUV = fract(rotatedUV * tiling.a);
+    float sineValue = sin(tiledUV.x * 3.14159 * 2.0);
+    float stripe = step(threshold, sineValue);
+    vec3 tilingColor = vec3(stripe);
+    markShadow1 = mix( vec3(0,0,0),tilingColor, markShadow1);
+
+    //// end ////
+
+    vec3 markBaseColor = (1.0 - (markShadow1 + markShadow2 + markShadow3 + markShadow4 + markBoder));
+
+    vec3 shadowInObject = markBaseColor*col.rgb + borderColor.rgb*markBoder + markShadow1*shadowColor1.rgb + markShadow2*shadowColor2.rgb + markShadow3*shadowColor3.rgb + markShadow4*shadowColor4.rgb ;
+    col.rgb = shadowInObject;
+
+    return col;  
+  }
+}%
+
